@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 #
 ##############################################################################
 #
@@ -17,59 +17,59 @@
 #              for details.
 ##############################################################################
 
-# %module
-# % description: Search and download of Landsat-8 scenes
-# % keyword: imagery
-# % keyword: Landsat
-# % keyword: download
-# %end
-# %option G_OPT_M_DIR
-# % key: output
-# % description: Name for output directory where to store downloaded data
-# % required: yes
-# % guisection: Output
-# %end
-# %option
-# % key: date_from
-# % description: Start date ('YYYY-MM-DD')
-# % answer: 2017-01-01
-# % type: string
-# % required: yes
-# %end
-# %option
-# % key: date_to
-# % description: End date ('YYYY-MM-DD')
-# % answer: 2017-12-01
-# % type: string
-# % required: yes
-# %end
-# %option
-# % key: clouds
-# % type: integer
-# % answer: 30
-# % required: no
-# % guisection: Filter
-# %end
-# %option
-# % key: file_key
-# % description: Download files
-# % multiple: no
-# % options: B1,B2,B3,B4,B5,B6,B7,B8,B9,B10,B11,BQA,MTL,ANG,thumb
-# % answer: thumb
-# % guisection: Filter
-# %end
-# %option G_OPT_V_MAP
-# % key: aoi
-# % label: Name of input vector map to define Area of Interest (AOI)
-# % description: If not given than current computational extent is used
-# % required: yes
-# % guisection: Region
-# %end
-# %flag
-# % key: l
-# % description: List filtered products and exist
-# % guisection: Print
-# %end
+#%module
+#% description: Search and download of Landsat-8 scenes
+#% keyword: imagery
+#% keyword: Landsat
+#% keyword: download
+#%end
+#%option G_OPT_M_DIR
+#% key: output
+#% description: Name for output directory where to store downloaded Sentinel data
+#% required: yes
+#% guisection: Output
+#%end
+#%option
+#% key: date_from
+#% description: Start date ('YYYY-MM-DD')
+#% answer: 2017-01-01
+#% type: string
+#% required: yes
+#%end
+#%option
+#% key: date_to
+#% description: End date ('YYYY-MM-DD')
+#% answer: 2017-12-01
+#% type: string
+#% required: yes
+#%end
+#%option
+#% key: clouds
+#% type: integer
+#% description: Maximum cloud cover percentage for Sentinel scene
+#% answer: 30
+#% required: no
+#% guisection: Filter
+#%end
+#%option
+#% key: file_key
+#% description: Download files
+#% multiple: no
+#% options: B1,B2,B3,B4,B5,B6,B7,B8,B9,B10,B11,BQA,MTL,ANG,thumb
+#% answer: thumb
+#% guisection: Filter
+#%end
+#%option G_OPT_V_MAP
+#% label: Name of input vector map to define Area of Interest (AOI)
+#% description: If not given than current computational extent is used
+#% required: yes
+#% guisection: Region
+#%end
+#%flag
+#% key: l
+#% description: List filtered products and exist
+#% guisection: Print
+#%end
 
 import sys
 import os
@@ -78,11 +78,11 @@ import json
 from grass.pygrass.modules import Module
 from grass.script import parser, tempdir, message, error, fatal
 
+
 try:
-    from satsearch.search import Search, SatSearchError
+   from satsearch.search import Search, SatSearchError
 except ImportError as e:
     fatal(("Module requieres satsearch library: {}".format(e)))
-
 
 class LansatDownloader(object):
     def __init__(self):
@@ -96,32 +96,28 @@ class LansatDownloader(object):
 
         Module('v.out.ogr',
                overwrite=True,
-               input=options['aoi'],
+               input=options['map'],
                format='GeoJSON',
                output=aoi_file)
 
         # Search for scenes
         with open(aoi_file) as f:
             aoi = json.dumps(json.load(f))
-        search = Search(date_from=options['date_from'],
-                        date_to=options['date_to'], satellite_name='Landsat-8',
-                        intersects=aoi, cloud_from=0,
-                        cloud_to=options['clouds'])
-
+        search = Search(date_from=options['date_from'], date_to=options['date_to'], satellite_name='Landsat-8',
+                        intersects=aoi, cloud_from=0, cloud_to=options['clouds'])
+        
         self._scenes = search.scenes()
-        os.remove(aoi_file)
+        os.remove(aoi_file)   
 
     def download(self):
         """ Download Landsat-8 scenes """
-
+        
         for scene in self._scenes:
-            try:
-                fname = scene.download(key=options['file_key'],
-                                       path=options['output'],
-                                       overwrite=True)[options['file_key']]
-                message(str(fname) + "... Done")
-            except:
-                error(str(fname) + "... Failed")
+                try:
+                    fname = scene.download(key=options['file_key'], path=options['output'], overwrite=True)[options['file_key']]
+                    message(str(fname) + "... Done") 
+                except:
+                    error(str(fname) + "... Failed")
 
     def list(self):
         """" Create list of files """
@@ -132,19 +128,21 @@ class LansatDownloader(object):
                 scene.metadata['cloud_coverage'],
                 scene.scene_id
             ))
-
-
+ 
 def main():
     downloader = LansatDownloader()
     downloader.search()
-
+    
     if flags['l']:
         downloader.list()
-        return 0
+        return
     else:
         downloader.download()
-        return 0
+        return
+        
+    return 0
 
 if __name__ == '__main__':
     options, flags = parser()
     sys.exit(main())
+
