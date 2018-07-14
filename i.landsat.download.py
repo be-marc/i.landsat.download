@@ -76,7 +76,7 @@ import os
 import json
 
 from grass.pygrass.modules import Module
-from grass.script import parser, tempdir, message, error, fatal
+from grass.script import parser, tempdir, message, error, fatal, run_command
 
 
 try:
@@ -100,8 +100,13 @@ class LansatDownloader(object):
                format='GeoJSON',
                output=aoi_file)
 
+        # Reproject to espg 4326
+        aoi_file_re = tempdir() + '/aoi_reprojected.geojson'
+
+        os.system("ogr2ogr -t_srs epsg:4326 " + aoi_file_re + " " + aoi_file)
+
         # Search for scenes
-        with open(aoi_file) as f:
+        with open(aoi_file_re) as f:
             aoi = json.dumps(json.load(f))
         search = Search(date_from=options['date_from'], date_to=options['date_to'], satellite_name='Landsat-8',
                         intersects=aoi, cloud_from=0, cloud_to=options['clouds'])
@@ -145,4 +150,5 @@ def main():
 if __name__ == '__main__':
     options, flags = parser()
     sys.exit(main())
+
 
